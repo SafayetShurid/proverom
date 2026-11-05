@@ -59,7 +59,7 @@ function render(source, w, h, mirror, lm) {
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   if (!lm) { window.__tryon.fit = null; return; }
   const pts = lm.map((p) => ({ x: (mirror ? 1 - p.x : p.x) * w, y: p.y * h, visibility: p.visibility }));
-  const fit = buildMesh(pts, dress, heightCm, meshVerts);
+  const fit = dress.kind === 'top' ? buildTopMesh(pts, dress, heightCm, meshVerts) : buildMesh(pts, dress, heightCm, meshVerts);
   window.__tryon.fit = { hemY: fit.hemY, h, chain: fit.body.chain, T: fit.body.T, ankleY: pts[27].y };
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
   gl.bindTexture(gl.TEXTURE_2D, dress.tex);
@@ -67,6 +67,13 @@ function render(source, w, h, mirror, lm) {
   gl.bufferData(gl.ARRAY_BUFFER, meshVerts, gl.DYNAMIC_DRAW);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
   gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+  [extras.eyes, extras.head].forEach((item) => {
+    if (!item) return;
+    buildHeadMesh(pts, item, meshVerts);
+    gl.bindTexture(gl.TEXTURE_2D, item.tex);
+    gl.bufferData(gl.ARRAY_BUFFER, meshVerts, gl.DYNAMIC_DRAW);
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+  });
 }
 
 /* ---------- The mannequin shown before the camera is on ---------- */
@@ -88,6 +95,8 @@ function mannequinPose(t) {
   lm[28] = P(x0 - hw * .85, .04); lm[27] = P(x0 + hw * .85, .04);
   lm[14] = P(sx - sw - 22, .625); lm[13] = P(sx + sw + 22, .625);
   lm[16] = P(sx - sw - 34, .47); lm[15] = P(sx + sw + 34, .47);
+  const face = (dx, dy) => ({ x: (sx + dx) / W, y: (y(.818) + dy) / H, visibility: 1 });
+  lm[3] = face(26, -112); lm[6] = face(-26, -112); lm[7] = face(44, -102); lm[8] = face(-44, -102);
   return lm;
 }
 
@@ -115,6 +124,7 @@ function drawMannequin(lm) {
 
 /* ---------- Catalogue and shop card ---------- */
 let dress, heightCm = 168;
+const extras = { eyes: null, head: null };
 window.__tryon = { fit: null };
 DRESSES.forEach((d) => { d.sheet = drawDress(d); d.tex = dressTexture(d.sheet); });
 
@@ -150,7 +160,7 @@ DRESSES.forEach((d) => {
 });
 
 /* ---------- A dress from the visitor's own photo ---------- */
-let ownDress, ownCutout;
+let ownDress, ownCutout, ownKind = 'dress';
 const ownTile = document.createElement('label');
 ownTile.id = 'ownTile';
 const ownThumb = document.createElement('canvas');
@@ -166,17 +176,20 @@ drawAddSign();
 const ownInput = document.createElement('input');
 ownInput.type = 'file'; ownInput.accept = 'image/*'; ownInput.id = 'ownPhoto';
 const ownName = document.createElement('span');
-ownName.textContent = 'Add dress';
+ownName.textContent = 'Add item';
 ownTile.append(ownThumb, ownName, ownInput);
 $('rail').append(ownTile);
 ownTile.addEventListener('click', (e) => {
   if (ownDress && dress !== ownDress) { e.preventDefault(); pick(ownDress); }
 });
 
+const BODY_ITEMS = { dress: { name: 'Your dress', start: 110 }, top: { name: 'Your T-shirt', start: 64 } };
+const HEAD_ITEMS = { glasses: { slot: 'eyes', name: 'glasses' }, hat: { slot: 'head', name: 'hat' } };
+
 function fitOwnDress(lengthCm) {
-  const made = dressFromCutout(ownCutout, lengthCm);
+  const made = ownKind === 'top' ? topFromCutout(ownCutout, lengthCm) : dressFromCutout(ownCutout, lengthCm);
   if (ownDress) gl.deleteTexture(ownDress.tex);
-  ownDress = { id: 'own', name: 'Your dress', blurb: 'From your photo. It stays on this device.',
+  ownDress = { id: 'own', kind: ownKind, name: BODY_ITEMS[ownKind].name, blurb: 'From your photo. It stays on this device.',
     fabric: 'As photographed', colour: 'As photographed', length: lengthCm,
     cut: made.cut, sheet: made.sheet, tex: dressTexture(made.sheet) };
   const c = ownThumb.getContext('2d'), s = 260 / ((136 + 3) * PX_PER_CM) * .94;
@@ -186,15 +199,40 @@ function fitOwnDress(lengthCm) {
   ownName.textContent = 'Yours';
   pick(ownDress);
 }
+function showExtras() {
+  const row = $('wearing');
+  row.replaceChildren();
+  Object.entries(extras).forEach(([slot, item]) => {
+    if (!item) return;
+    const b = document.createElement('button');
+    b.type = 'button'; b.id = 'remove-' + slot;
+    b.textContent = 'Remove ' + item.label;
+    b.addEventListener('click', () => { gl.deleteTexture(item.tex); extras[slot] = null; showExtras(); redrawPhoto(); });
+    row.append(b);
+  });
+  row.hidden = !row.children.length;
+}
+function redrawPhoto() { if (mode === 'photo') showPhoto(); }
 ownInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
+  const file = e.target.files[0], kind = $('ownKind').value;
   e.target.value = '';
   if (!file) return;
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-    ownCutout = cutOutDress(bitmap);
-    fitOwnDress(+$('ownLength').value);
-    say('Set the dress length so the hem lands in the right place.');
+    const cutout = cutOutPhoto(bitmap, { clearHoles: kind === 'glasses' });
+    if (HEAD_ITEMS[kind]) {
+      const { slot, name } = HEAD_ITEMS[kind];
+      if (extras[slot]) gl.deleteTexture(extras[slot].tex);
+      extras[slot] = { kind, label: name, aspect: cutout.height / cutout.width, tex: dressTexture(cutout) };
+      showExtras(); redrawPhoto();
+      say(name === 'hat' ? 'Your hat is on.' : 'Your glasses are on.');
+      return;
+    }
+    ownCutout = cutout; ownKind = kind;
+    const start = ownDress && ownDress.kind === kind ? ownDress.length : BODY_ITEMS[kind].start;
+    $('ownLength').value = start; $('ownLengthOut').textContent = start + ' cm';
+    fitOwnDress(start);
+    say('Set the length so the hem lands in the right place.');
   } catch (err) {
     console.warn(err);
     say(err instanceof CutoutError ? err.message : 'That file could not be opened. Try a JPG or PNG photo.');

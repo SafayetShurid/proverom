@@ -46,6 +46,9 @@ dd { margin: 0; font-variant-numeric: tabular-nums }
 .height { display: flex; align-items: center; gap: 10px }
 .height label { color: var(--muted); white-space: nowrap }
 .height input { flex: 1; min-width: 0; accent-color: var(--accent) }
+.height select { flex: 1; min-width: 0; font: 400 15px var(--body); padding: 6px 8px; background: var(--panel); color: var(--fg); border: 1px solid var(--line) }
+.wearing { display: flex; flex-wrap: wrap; gap: 6px }
+.wearing button { font: 500 13px var(--body); padding: 6px 10px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); cursor: pointer }
 .height output { min-width: 56px; text-align: right; font-variant-numeric: tabular-nums }
 .actions { display: flex; flex-direction: column; gap: 8px }
 .actions button, .actions label { display: block; text-align: center; padding: 12px; font: 600 15px var(--body); cursor: pointer; border: 1px solid var(--accent) }
@@ -80,6 +83,16 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
       <p class="blurb" id="blurb"></p>
     </div>
     <div class="rail" id="rail" aria-label="Choose a dress"></div>
+    <div class="height">
+      <label for="ownKind">Adding a</label>
+      <select id="ownKind">
+        <option value="dress">Dress</option>
+        <option value="top">T-shirt</option>
+        <option value="glasses">Pair of glasses</option>
+        <option value="hat">Hat</option>
+      </select>
+    </div>
+    <div class="wearing" id="wearing" hidden></div>
     <dl>
       <dt>Fabric</dt><dd id="fabric"></dd>
       <dt>Colour</dt><dd id="colour"></dd>
@@ -92,7 +105,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
       <output id="heightOut" for="height">168 cm</output>
     </div>
     <div class="height" id="ownLengthRow" hidden>
-      <label for="ownLength">Dress length</label>
+      <label for="ownLength">Item length</label>
       <input id="ownLength" type="range" min="60" max="160" step="1" value="110">
       <output id="ownLengthOut" for="ownLength">110 cm</output>
     </div>
@@ -100,7 +113,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
       <button id="camera" type="button">Open camera</button>
       <label id="photoBtn">Try it on a photo<input id="photo" type="file" accept="image/*"></label>
     </div>
-    <p class="fine" id="hint">Stand back so your whole body is in frame. Video stays on your device. These dresses are drawn for the demo. To try a real one, choose Add dress and pick a flat photo of it on a plain background.</p>
+    <p class="fine" id="hint">Stand back so your whole body is in frame. Video stays on your device. These dresses are drawn for the demo. To try a real item, choose what you are adding, tap Add item, and pick a photo of it on a plain background. Your photo stays on this device.</p>
   </section>
 </main>
 <script>/*__POSE_JS__*/</script>

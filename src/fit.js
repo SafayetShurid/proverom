@@ -140,6 +140,80 @@ function buildMesh(lm, dress, heightCm, out) {
   return { verts, body: b, hemY: pointAt(b, rowTable[4][1]).y };
 }
 
+// A T-shirt: the body follows the torso, and each sleeve swings around the shoulder to follow the arm.
+function buildTopMesh(lm, top, heightCm, out) {
+  const b = readBody(lm), c = top.cut, T = b.T;
+  const lengthPx = top.length / (BODY.shoulderToAnkle * heightCm) * b.chain;
+  const startRow = -T * .06;
+  const rowTable = [[0, startRow], [c.armpit, T * .32], [top.length, Math.max(startRow + lengthPx, T * .6)]];
+  const bodyPx = Math.max(b.shoulderW * .54, b.hipW * .72, T * .24) * 1.06;
+  const sx = bodyPx / c.chestW;
+  const sheetH = top.length + 3;
+  const place = (xCm, yCm) => {
+    const s = pieces(rowTable, Math.min(yCm, top.length)) + Math.max(0, yCm - top.length) * lengthPx / top.length;
+    const ctr = pointAt(b, s), k = clamp(s / T, 0, 1);
+    const ax = lerp(b.acrossTop.x, b.acrossHip.x, k), ay = lerp(b.acrossTop.y, b.acrossHip.y, k);
+    return { x: ctr.x + ax * xCm * sx, y: ctr.y + ay * xCm * sx };
+  };
+  // How far each sleeve must turn: from where it lies in the flat photo to where the arm points.
+  const swing = (side) => {
+    const shoulder = side > 0 ? lm[11] : lm[12], elbow = side > 0 ? lm[13] : lm[14];
+    const pivot = place(side * c.chestW, c.armpit * .45);
+    const tip = place(side * (c.chestW + 14), c.armpit * .45 + 10);
+    const from = Math.atan2(tip.y - pivot.y, tip.x - pivot.x);
+    const to = (elbow.visibility ?? 1) > .4 ? Math.atan2(elbow.y - shoulder.y, elbow.x - shoulder.x) : from;
+    let turn = to - from;
+    while (turn > Math.PI) turn -= 2 * Math.PI;
+    while (turn < -Math.PI) turn += 2 * Math.PI;
+    return { pivot, turn };
+  };
+  const arms = { 1: swing(1), '-1': swing(-1) };
+
+  const verts = out;
+  let n = 0;
+  for (let r = 0; r <= ROWS; r++) {
+    const yCm = r / ROWS * sheetH;
+    for (let col = 0; col <= COLS; col++) {
+      const xCm = (col / COLS - .5) * SHEET_W_CM;
+      let p = place(xCm, yCm);
+      const over = (Math.abs(xCm) - c.chestW * .9) / 7;
+      const fade = clamp(1 - (yCm - c.armpit) / 10, 0, 1);   // sleeves turn, the body below them does not
+      if (over > 0 && fade > 0) {
+        const a = arms[xCm > 0 ? 1 : -1], t = a.turn * Math.min(1, over) * fade;
+        const dx = p.x - a.pivot.x, dy = p.y - a.pivot.y, co = Math.cos(t), si = Math.sin(t);
+        p = { x: a.pivot.x + dx * co - dy * si, y: a.pivot.y + dx * si + dy * co };
+      }
+      const e = Math.min(1, Math.abs(xCm) / c.chestW);
+      verts[n++] = p.x; verts[n++] = p.y;
+      verts[n++] = col / COLS; verts[n++] = r / ROWS;
+      verts[n++] = 1.04 - .22 * e * e * e;
+    }
+  }
+  return { verts, body: b, hemY: pointAt(b, rowTable[2][1]).y };
+}
+
+// Glasses and hats: a flat picture that sits on the head and tilts with it.
+function buildHeadMesh(lm, item, out) {
+  let a = lm[6], c = lm[3];
+  if (a.x > c.x) { const t = a; a = c; c = t; }
+  const eyeGap = Math.max(dist(a, c), 1), across = { x: (c.x - a.x) / eyeGap, y: (c.y - a.y) / eyeGap };
+  const up = { x: across.y, y: -across.x };
+  const head = Math.max(dist(lm[7], lm[8]), eyeGap * 1.7);
+  const eyes = mid(a, c);
+  const isHat = item.kind === 'hat';
+  const w = head * (isHat ? 1.4 : 1.02), h = w * item.aspect;
+  const lift = isHat ? head * .42 + h * .8 : h * .47;   // the hat band sits on the forehead, lenses on the eyes
+  const topLeft = { x: eyes.x + up.x * lift - across.x * w / 2, y: eyes.y + up.y * lift - across.y * w / 2 };
+  let n = 0;
+  for (let r = 0; r <= ROWS; r++) for (let col = 0; col <= COLS; col++) {
+    const u = col / COLS, v = r / ROWS;
+    out[n++] = topLeft.x + across.x * u * w - up.x * v * h;
+    out[n++] = topLeft.y + across.y * u * w - up.y * v * h;
+    out[n++] = u; out[n++] = v; out[n++] = 1;
+  }
+  return out;
+}
+
 function meshIndices() {
   const idx = new Uint16Array(ROWS * COLS * 6); let n = 0;
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
