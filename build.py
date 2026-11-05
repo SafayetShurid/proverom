@@ -16,7 +16,7 @@ ENGINE = ['pose_landmark_lite.tflite', 'pose_solution_packed_assets.data', 'pose
           'pose_solution_simd_wasm_bin.js', 'pose_solution_simd_wasm_bin.wasm', 'pose_web.binarypb']
 
 page = (src / 'page.html').read_text()
-app = ''.join((src / f).read_text() + '\n' for f in ['dresses.js', 'fit.js', 'app.js'])
+app = ''.join((src / f).read_text() + '\n' for f in ['dresses.js', 'fit.js', 'cutout.js', 'app.js'])
 pose_js = (eng / 'pose.js').read_text()
 assert '</script' not in app and '</script' not in pose_js
 
@@ -75,10 +75,10 @@ web.mkdir()
 setup = 'function ENGINE_URL(name) { return %r + name; }' % CDN
 html = (page.replace('<script>/*__POSE_JS__*/</script>', '<script src="%spose.js" crossorigin="anonymous"></script>' % CDN)
             .replace('/*__ENGINE_SETUP__*/', setup)
-            .replace('<script>/*__APP_JS__*/</script>', '<script src="dresses.js"></script>\n<script src="fit.js"></script>\n<script src="app.js"></script>'))
+            .replace('<script>/*__APP_JS__*/</script>', '<script src="dresses.js"></script>\n<script src="fit.js"></script>\n<script src="cutout.js"></script>\n<script src="app.js"></script>'))
 html = html.replace('<title>Prøverom</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n', '')
 (web / 'index.html').write_text('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<title>Prøverom</title>\n</head>\n<body>\n' + html + '\n</body>\n</html>\n')
-for f in ['dresses.js', 'fit.js', 'app.js']:
+for f in ['dresses.js', 'fit.js', 'cutout.js', 'app.js']:
     shutil.copy(src / f, web / f)
 
 for p in sorted(out.rglob('*')):

@@ -33,9 +33,12 @@ body { background: var(--bg); color: var(--fg); font: 400 15px/1.5 var(--body);
 .brand span { font-size: 13px; color: var(--muted) }
 h1 { font: 500 44px/1.05 var(--display); margin: 0; text-wrap: balance }
 .blurb { margin: 6px 0 0; color: var(--muted) }
-.rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px }
-.rail button { display: block; padding: 4px 0 6px; background: var(--panel); border: 1px solid var(--line); color: var(--fg); font: 500 12.5px var(--body); cursor: pointer; min-width: 0 }
+.rail { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px }
+.rail button, .rail label { position: relative; display: block; text-align: center; padding: 4px 0 6px; background: var(--panel); border: 1px solid var(--line); color: var(--fg); font: 500 12.5px var(--body); cursor: pointer; min-width: 0 }
 .rail button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
+.rail label.picked { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
+.rail label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px }
+#ownPhoto { position: absolute; opacity: 0; width: 1px; height: 1px }
 .rail canvas { display: block; width: 100%; height: auto }
 dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; margin: 0 }
 dt { color: var(--muted) }
@@ -88,11 +91,16 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
       <input id="height" type="range" min="150" max="195" step="1" value="168">
       <output id="heightOut" for="height">168 cm</output>
     </div>
+    <div class="height" id="ownLengthRow" hidden>
+      <label for="ownLength">Dress length</label>
+      <input id="ownLength" type="range" min="60" max="160" step="1" value="110">
+      <output id="ownLengthOut" for="ownLength">110 cm</output>
+    </div>
     <div class="actions">
       <button id="camera" type="button">Open camera</button>
       <label id="photoBtn">Try it on a photo<input id="photo" type="file" accept="image/*"></label>
     </div>
-    <p class="fine" id="hint">Stand back so your whole body is in frame. Video stays on your device. These dresses are drawn for the demo.</p>
+    <p class="fine" id="hint">Stand back so your whole body is in frame. Video stays on your device. These dresses are drawn for the demo. To try a real one, choose Add dress and pick a flat photo of it on a plain background.</p>
   </section>
 </main>
 <script>/*__POSE_JS__*/</script>

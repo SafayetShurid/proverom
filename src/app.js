@@ -130,6 +130,8 @@ function refreshCard() {
 function pick(d) {
   dress = d;
   document.querySelectorAll('#rail button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.id)));
+  $('ownTile').classList.toggle('picked', d.id === 'own');
+  $('ownLengthRow').hidden = d.id !== 'own';
   refreshCard();
   if (mode === 'photo') showPhoto();
 }
@@ -146,6 +148,63 @@ DRESSES.forEach((d) => {
   b.addEventListener('click', () => pick(d));
   $('rail').append(b);
 });
+
+/* ---------- A dress from the visitor's own photo ---------- */
+let ownDress, ownCutout;
+const ownTile = document.createElement('label');
+ownTile.id = 'ownTile';
+const ownThumb = document.createElement('canvas');
+ownThumb.width = 200; ownThumb.height = 260;
+function drawAddSign() {
+  const c = ownThumb.getContext('2d');
+  c.clearRect(0, 0, 200, 260);
+  c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
+  c.font = '300 96px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('+', 100, 130);
+}
+drawAddSign();
+const ownInput = document.createElement('input');
+ownInput.type = 'file'; ownInput.accept = 'image/*'; ownInput.id = 'ownPhoto';
+const ownName = document.createElement('span');
+ownName.textContent = 'Add dress';
+ownTile.append(ownThumb, ownName, ownInput);
+$('rail').append(ownTile);
+ownTile.addEventListener('click', (e) => {
+  if (ownDress && dress !== ownDress) { e.preventDefault(); pick(ownDress); }
+});
+
+function fitOwnDress(lengthCm) {
+  const made = dressFromCutout(ownCutout, lengthCm);
+  if (ownDress) gl.deleteTexture(ownDress.tex);
+  ownDress = { id: 'own', name: 'Your dress', blurb: 'From your photo. It stays on this device.',
+    fabric: 'As photographed', colour: 'As photographed', length: lengthCm,
+    cut: made.cut, sheet: made.sheet, tex: dressTexture(made.sheet) };
+  const c = ownThumb.getContext('2d'), s = 260 / ((136 + 3) * PX_PER_CM) * .94;
+  const dw = made.sheet.width * s, dh = made.sheet.height * s;
+  c.clearRect(0, 0, 200, 260);
+  c.drawImage(made.sheet, (200 - dw) / 2, 8, dw, dh);
+  ownName.textContent = 'Yours';
+  pick(ownDress);
+}
+ownInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    ownCutout = cutOutDress(bitmap);
+    fitOwnDress(+$('ownLength').value);
+    say('Set the dress length so the hem lands in the right place.');
+  } catch (err) {
+    console.warn(err);
+    say(err instanceof CutoutError ? err.message : 'That file could not be opened. Try a JPG or PNG photo.');
+  }
+});
+$('ownLength').addEventListener('input', (e) => {
+  $('ownLengthOut').textContent = e.target.value + ' cm';
+  if (ownCutout) fitOwnDress(+e.target.value);
+});
+
 pick(DRESSES[0]);
 $('height').addEventListener('input', (e) => {
   heightCm = +e.target.value; $('heightOut').textContent = heightCm + ' cm'; refreshCard();
