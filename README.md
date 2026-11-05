@@ -1,5 +1,7 @@
 # Prøverom: AR dress try-on demo
 
+Live site: https://proverom.vercel.app
+
 Rebuild with `python3 build.py`. Output goes to `dist/`.
 
 - `dist/standalone/Proverom.html` is one self-contained file with the live camera.
