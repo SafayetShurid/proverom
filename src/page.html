@@ -1,0 +1,100 @@
+<title>Prøverom</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;1,6..96,500&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a tall mirror on the left, the shop card beside it. On a phone the mirror comes first. */
+:root {
+  --bg: #e9e6ee; --panel: #f6f4f9; --fg: #221b2e; --muted: #5f566e; --line: #cfc9da;
+  --accent: #3a2bb8; --on-accent: #ffffff; --stage: #15121b; --on-stage: #f3f0f8;
+  --display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #17141e; --panel: #211d2b; --fg: #efebf5; --muted: #a79fb6; --line: #383146;
+  --accent: #a99cff; --on-accent: #17141e; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #17141e; --panel: #211d2b; --fg: #efebf5; --muted: #a79fb6; --line: #383146;
+  --accent: #a99cff; --on-accent: #17141e; color-scheme: dark }
+* { box-sizing: border-box }
+html, body { height: 100% }
+body { background: var(--bg); color: var(--fg); font: 400 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 24px; max-width: 1040px; margin-inline: auto; align-items: start }
+.stage { position: relative; aspect-ratio: 4 / 5; max-height: calc(100vh - 32px); width: 100%; background: var(--stage); color: var(--on-stage); overflow: hidden; justify-self: center }
+#view { display: block; width: 100%; height: 100%; object-fit: cover }
+.stage.photo #view { object-fit: contain }
+.chip { position: absolute; left: 12px; top: 12px; max-width: calc(100% - 24px); padding: 6px 10px; font-size: 13px; line-height: 1.35; background: rgb(21 18 27 / .78); color: var(--on-stage) }
+.chip:empty { display: none }
+.stage-tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 8px }
+.stage-tools button { font: 500 14px var(--body); padding: 8px 12px; border: 1px solid rgb(243 240 248 / .5); background: rgb(21 18 27 / .78); color: var(--on-stage); cursor: pointer }
+.shop { display: flex; flex-direction: column; gap: 18px; min-width: 0 }
+.brand { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 10px }
+.brand b { font: italic 500 22px var(--display) }
+.brand span { font-size: 13px; color: var(--muted) }
+h1 { font: 500 44px/1.05 var(--display); margin: 0; text-wrap: balance }
+.blurb { margin: 6px 0 0; color: var(--muted) }
+.rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px }
+.rail button { display: block; padding: 4px 0 6px; background: var(--panel); border: 1px solid var(--line); color: var(--fg); font: 500 12.5px var(--body); cursor: pointer; min-width: 0 }
+.rail button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
+.rail canvas { display: block; width: 100%; height: auto }
+dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; margin: 0 }
+dt { color: var(--muted) }
+dd { margin: 0; font-variant-numeric: tabular-nums }
+.height { display: flex; align-items: center; gap: 10px }
+.height label { color: var(--muted); white-space: nowrap }
+.height input { flex: 1; min-width: 0; accent-color: var(--accent) }
+.height output { min-width: 56px; text-align: right; font-variant-numeric: tabular-nums }
+.actions { display: flex; flex-direction: column; gap: 8px }
+.actions button, .actions label { display: block; text-align: center; padding: 12px; font: 600 15px var(--body); cursor: pointer; border: 1px solid var(--accent) }
+#camera { background: var(--accent); color: var(--on-accent) }
+#photoBtn { background: transparent; color: var(--accent) }
+#photoBtn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px }
+#photoBtn.primary { background: var(--accent); color: var(--on-accent) }
+#photo { position: absolute; opacity: 0; width: 1px; height: 1px }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.fine { margin: 0; font-size: 13px; color: var(--muted) }
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr) }
+  .stage { max-height: 72vh }
+  h1 { font-size: 36px }
+}
+</style>
+
+<main class="app">
+  <section class="stage" id="stage" aria-label="Mirror">
+    <canvas id="view"></canvas>
+    <div class="chip" id="status" role="status"></div>
+    <div class="stage-tools">
+      <button id="flip" type="button" hidden>Switch camera</button>
+      <button id="stop" type="button" hidden>Back to the mannequin</button>
+    </div>
+  </section>
+
+  <section class="shop">
+    <div class="brand"><b>Prøverom</b><span>Try-on demo</span></div>
+    <div>
+      <h1 id="name"></h1>
+      <p class="blurb" id="blurb"></p>
+    </div>
+    <div class="rail" id="rail" aria-label="Choose a dress"></div>
+    <dl>
+      <dt>Fabric</dt><dd id="fabric"></dd>
+      <dt>Colour</dt><dd id="colour"></dd>
+      <dt>Length</dt><dd id="length"></dd>
+      <dt>On you</dt><dd id="onyou"></dd>
+    </dl>
+    <div class="height">
+      <label for="height">Your height</label>
+      <input id="height" type="range" min="150" max="195" step="1" value="168">
+      <output id="heightOut" for="height">168 cm</output>
+    </div>
+    <div class="actions">
+      <button id="camera" type="button">Open camera</button>
+      <label id="photoBtn">Try it on a photo<input id="photo" type="file" accept="image/*"></label>
+    </div>
+    <p class="fine" id="hint">Stand back so your whole body is in frame. Video stays on your device. These dresses are drawn for the demo.</p>
+  </section>
+</main>
+<script>/*__POSE_JS__*/</script>
+<script>/*__ENGINE_SETUP__*/</script>
+<script>/*__APP_JS__*/</script>

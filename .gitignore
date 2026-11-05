@@ -1,0 +1,6 @@
+dist/
+vendor-dl/
+test/
+*.zip
+__pycache__/
+.vercel/
